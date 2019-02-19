@@ -4,6 +4,7 @@ const vscode = require('vscode');
 const { commands, window } = vscode;
 const Redis = require('ioredis');
 const UUIDV4 = require('uuid/v4');
+const Moment = require('moment');
 
 // this method is called when your extension is activated
 // your extension is activated the very first time the command is executed
@@ -30,7 +31,7 @@ function activate(context) {
 		const body = JSON.parse(msg);
 		const sender = body.session.name || 'Anonymous';
 		if (body.session.sessionid) {
-			window.showInformationMessage(`[${sender}] to [${body.to}]: ${body.msg}`);
+			window.showInformationMessage(`${Moment().format('HH:mm:ss')} [${sender}] to [${body.to}]: ${body.msg}`);
 		}
 	});
 
