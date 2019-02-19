@@ -6,28 +6,48 @@
 	"engines": {
 		"vscode": "^1.31.0"
 	},
+	"repository": "https://github.com/jimliu7434/lunchtime-vs-ext",
 	"categories": [
 		"Other"
 	],
 	"activationEvents": [
-		"onCommand:extension.helloWorld"
+		"*"
 	],
 	"main": "./extension.js",
 	"contributes": {
-		"commands": [{
-            "command": "extension.helloWorld",
-			"title": "Hello World"
-		}]
+		"commands": [
+			{
+				"command": "extension.login",
+				"title": "talker login"
+			},
+			{
+				"command": "extension.join",
+				"title": "talker join"
+			},
+			{
+				"command": "extension.toall",
+				"title": "talker toall"
+			},
+			{
+				"command": "extension.touser",
+				"title": "talker to"
+			}
+		]
 	},
 	"scripts": {
 		"postinstall": "node ./node_modules/vscode/bin/install",
 		"test": "node ./node_modules/vscode/bin/test"
 	},
 	"devDependencies": {
-		"typescript": "^3.3.1",
-		"vscode": "^1.1.28",
-		"eslint": "^5.13.0",
+		"@types/mocha": "^2.2.42",
 		"@types/node": "^10.12.21",
-		"@types/mocha": "^2.2.42"
+		"eslint": "^5.13.0",
+		"typescript": "^3.3.1",
+		"vscode": "^1.1.28"
+	},
+	"dependencies": {
+		"ioredis": "^4.6.2",
+		"moment": "^2.24.0",
+		"uuid": "^3.3.2"
 	}
 }
