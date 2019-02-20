@@ -17,6 +17,10 @@
 	"contributes": {
 		"commands": [
 			{
+				"command": "extension.connect",
+				"title": "talker connect"
+			},
+			{
 				"command": "extension.login",
 				"title": "talker login"
 			},

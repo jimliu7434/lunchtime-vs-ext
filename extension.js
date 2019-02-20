@@ -10,27 +10,7 @@ const Moment = require('moment');
  * @param {vscode.ExtensionContext} context
  */
 function activate(context) {
-	const userRedis = new Redis({
-		host: '10.1.4.226',
-		port: 6379,
-		db: 8,
-	});
-
-	const sub = userRedis.duplicate();
-	const pub = userRedis.duplicate();
-
-	sub.on('message', (ch, msg) => {
-		const body = JSON.parse(msg);
-		if (body.session.sessionid) {
-			const sender = body.session.name || 'Anonymous';
-			const nw = Moment().format('HH:mm:ss');
-			const line = `${nw} [${sender}] to [${body.to}]: ${body.msg}`;
-			outputView.appendLine(line);
-			if(sender !== Session.name) {
-				window.showInformationMessage(line);
-			}
-		}
-	});
+	let userRedis, sub, pub;
 
 	const USERTABLE = `USERID`;
 	const SESSIONTABLE = (id) => `SESSION>${id}`;
@@ -49,6 +29,7 @@ function activate(context) {
 	const ExpirySec = 3600;	// 1 hr
 	const ExpiredMsg = `Login expired or not login (join) yet`;
 	const UserNotExistMsg = `Target user is not exist`;
+	const NotConnected = `Not connected yet`;
 	
 	const outputView = window.createOutputChannel('talker view');
 	context.subscriptions.push(outputView);
@@ -90,7 +71,53 @@ function activate(context) {
 		return false;
 	};
 
+	const CheckUserRedis = () => {
+		if(userRedis && userRedis.status === 'ready') {
+			return true;
+		}
+
+		return false;
+	};
+
+	let connect = commands.registerCommand('extension.connect', async () => {
+		let prompt = 'redis://ip:port';
+		let host = await window.showInputBox({ prompt, value: '' });
+
+		if(!host.startsWith('redis://')) {
+			host = 'redis://' + host;
+		}
+
+		host += '/8'
+
+		userRedis = new Redis(host);
+		sub = userRedis.duplicate();
+		pub = userRedis.duplicate();
+
+		userRedis.on('ready', () => {
+			outputView.appendLine(`Connected`);
+			window.showInformationMessage(`Connected`);
+		});
+
+		sub.on('message', (ch, msg) => {
+			const body = JSON.parse(msg);
+			if (body.session.sessionid) {
+				const sender = body.session.name || 'Anonymous';
+				const nw = Moment().format('HH:mm:ss');
+				const line = `${nw} [${sender}] to [${body.to}]: ${body.msg}`;
+				outputView.appendLine(line);
+				if(sender !== Session.name) {
+					window.showInformationMessage(line);
+				}
+			}
+		});
+	});
+
 	let login = commands.registerCommand('extension.login', async () => {
+		if(CheckUserRedis() !== true) {
+			window.showErrorMessage(NotConnected);
+			return;
+		}
+
 		let prompt = 'Your nickname';
 		const user = await window.showInputBox({ prompt, value: '' });
 
@@ -127,6 +154,11 @@ function activate(context) {
 	});
 
 	let join = commands.registerCommand('extension.join', async () => {
+		if(CheckUserRedis() !== true) {
+			window.showErrorMessage(NotConnected);
+			return;
+		}
+
 		// create a sessionid
 		while (true) {
 			const id = UUIDV4();
@@ -145,6 +177,11 @@ function activate(context) {
 	});
 
 	let toall = commands.registerCommand('extension.toall', async () => {
+		if(CheckUserRedis() !== true) {
+			window.showErrorMessage(NotConnected);
+			return;
+		}
+
 		if ((await CheckSession()) !== true) {
 			window.showWarningMessage(ExpiredMsg);
 			return;
@@ -167,6 +204,11 @@ function activate(context) {
 	});
 
 	let touser = commands.registerCommand('extension.touser', async () => {
+		if(CheckUserRedis() !== true) {
+			window.showErrorMessage(NotConnected);
+			return;
+		}
+
 		if ((await CheckSession()) !== true) {
 			window.showWarningMessage(ExpiredMsg);
 			return;
@@ -200,6 +242,11 @@ function activate(context) {
 	});
 
 	let list = commands.registerCommand('extension.list', async () => {
+		if(CheckUserRedis() !== true) {
+			window.showErrorMessage(NotConnected);
+			return;
+		}
+
 		if (pub) {
 			const list = await userRedis.hgetall(USERTABLE);
 			const nw = Moment().format('HH:mm:ss');
@@ -209,7 +256,7 @@ function activate(context) {
 		}
 	});
 
-	context.subscriptions.push(login, join, toall, touser, list);
+	context.subscriptions.push(connect, login, join, toall, touser, list);
 }
 exports.activate = activate;
 
