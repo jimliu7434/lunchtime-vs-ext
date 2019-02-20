@@ -29,31 +29,71 @@ function activate(context) {
 
 	sub.on('message', (ch, msg) => {
 		const body = JSON.parse(msg);
-		const sender = body.session.name || 'Anonymous';
 		if (body.session.sessionid) {
-			window.showInformationMessage(`${Moment().format('HH:mm:ss')} [${sender}] to [${body.to}]: ${body.msg}`);
+			const sender = body.session.name || 'Anonymous';
+			const nw = Moment().format('HH:mm:ss');
+			const line = `${nw} [${sender}] to [${body.to}]: ${body.msg}`;
+			outputView.appendLine(line)
+			window.showInformationMessage(line);
 		}
 	});
 
 	const USERTABLE = `USERID`;
-	const SESSIONTABLE = `SESSION`;
+	const SESSIONTABLE = (id) => `SESSION>${id}`;
 	const ChannelToAll = () => `CHANNEL-TOALL`;
 	const ChannelToUser = (name) => `CHANNEL-${name}`;
 
-	const Session = {
-		login: 0,
-		name: '',
-		sessionid: '',
-	};
+	class UserSession {
+		constructor({ login = 0, name = '', sessionid = '' } = { login: 0, name: '', sessionid: '' }) {
+			this.login = login;
+			this.name = name;
+			this.sessionid = sessionid;
+		}
+	}
+
+	let Session = new UserSession();
+	const ExpirySec = 3600;	// 1 hr
+	const ExpiredMsg = `Login expired or not login (join) yet`;
+	const UserNotExistMsg = `Target user is not exist`;
+	
+	const outputView = window.createOutputChannel('talker view');
+	context.subscriptions.push(outputView);
+	outputView.show();
 
 	const InitPubSub = () => {
 		if (Session.login === 1) {
-	const ChannelToUser = (name) => `CHANNEL-${name}`;
+			const ChannelToUser = (name) => `CHANNEL-${name}`;
 			sub.subscribe(ChannelToAll(), ChannelToUser(Session.name));
 		}
 		else {
 			sub.subscribe(ChannelToAll());
 		}
+	};
+
+	const CheckSession = async () => {
+		if(Session.sessionid === '') {
+			return false;
+		}
+
+		const sess = await userRedis.get(SESSIONTABLE(Session.sessionid));
+		if(sess !== null) {
+			return true;
+		}
+
+		return false;
+	};
+
+	const CheckUserExist = async (user) => {
+		if(!user) {
+			return false;
+		}
+
+		const exist = await userRedis.hget(USERTABLE, user);
+		if(exist !== null) {
+			return true;
+		}
+
+		return false;
 	};
 
 	let login = commands.registerCommand('extension.login', async () => {
@@ -78,12 +118,10 @@ function activate(context) {
 		// create a sessionid
 		while (true) {
 			const id = UUIDV4();
-			sess = await userRedis.hget(SESSIONTABLE, id);
+			sess = await userRedis.get(SESSIONTABLE(id));
 			if (sess === null) {
-				Session.login = 1;
-				Session.sessionid = id;
-				Session.name = user;
-				userRedis.hset(SESSIONTABLE, id, JSON.stringify(Session));
+				Session = new UserSession({ login: 1, sessionid: id, name: user });
+				userRedis.setex(SESSIONTABLE(id), ExpirySec, JSON.stringify(Session));
 				break;
 			}
 		}
@@ -98,10 +136,10 @@ function activate(context) {
 		// create a sessionid
 		while (true) {
 			const id = UUIDV4();
-			sess = await userRedis.hget(SESSIONTABLE, id);
+			sess = await userRedis.get(SESSIONTABLE(id));
 			if (sess === null) {
-				Session.sessionid = id;
-				userRedis.hset(SESSIONTABLE, id, JSON.stringify(Session));
+				Session = new UserSession({ sessionid: id });
+				userRedis.setex(SESSIONTABLE(id), ExpirySec, JSON.stringify(Session));
 				break;
 			}
 		}
@@ -113,38 +151,67 @@ function activate(context) {
 	});
 
 	let toall = commands.registerCommand('extension.toall', async () => {
+		if ((await CheckSession()) !== true) {
+			window.showWarningMessage(ExpiredMsg);
+			return;
+		}
+
 		let prompt = 'Message';
 		const msg = await window.showInputBox({ prompt, value: '' });
 
 		if (pub && msg !== '') {
+			// reset ex for session
+			userRedis.setex(SESSIONTABLE(Session.sessionid), ExpirySec, JSON.stringify(Session));
+
 			const body = {
 				session: Session,
 				to: 'all',
 				msg,
 			}
 			pub.publish(ChannelToAll(), JSON.stringify(body));
-			window.showInformationMessage('msg sent');
 		}
 	});
 
 	let touser = commands.registerCommand('extension.touser', async () => {
+		if ((await CheckSession()) !== true) {
+			window.showWarningMessage(ExpiredMsg);
+			return;
+		}
+
 		let prompt = 'User nickname';
 		const user = await window.showInputBox({ prompt, value: '' });
 		prompt = 'Message';
 		const msg = await window.showInputBox({ prompt, value: '' });
 
 		if (pub && user !== '' && msg !== '') {
+			// reset ex for session
+			userRedis.setex(SESSIONTABLE(Session.sessionid), ExpirySec, JSON.stringify(Session));
+
+			if((await CheckUserExist(user)) !== true) {
+				window.showWarningMessage(UserNotExistMsg);
+				return;
+			}
+
 			const body = {
 				session: Session,
 				to: user,
 				msg,
 			}
 			pub.publish(ChannelToUser(user), JSON.stringify(body));
-			//window.showInformationMessage('msg sent');
 		}
 	});
 
-	context.subscriptions.push(login, join, toall, touser);
+	let list = commands.registerCommand('extension.list', async () => {
+		if (pub) {
+			const list = await userRedis.hgetall(USERTABLE);
+			const nw = Moment().format('HH:mm:ss');
+			if(list) {
+				outputView.appendLine(`${nw} [User List]:${Object.keys(list).join(',')}`);
+			}
+		}
+	});
+
+	context.subscriptions.push(login, join, toall, touser, list);
 }
 exports.activate = activate;
 

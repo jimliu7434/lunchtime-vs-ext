@@ -31,8 +31,29 @@
 			{
 				"command": "extension.touser",
 				"title": "talker to"
+			},
+			{
+				"command": "extension.list",
+				"title": "talker list"
 			}
-		]
+		],
+		"viewsContainers": {
+			"activitybar": [
+				{
+					"id": "talker-container",
+					"title": "Talker",
+					"icon": "resources/talker.svg"
+				}
+			]
+		},
+		"views": {
+			"talker-container": [
+				{
+					"id": "talker-view",
+					"name": "Talker"
+				}
+			]
+		}
 	},
 	"scripts": {
 		"postinstall": "node ./node_modules/vscode/bin/install",
