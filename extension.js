@@ -25,8 +25,10 @@ function activate(context) {
 			const sender = body.session.name || 'Anonymous';
 			const nw = Moment().format('HH:mm:ss');
 			const line = `${nw} [${sender}] to [${body.to}]: ${body.msg}`;
-			outputView.appendLine(line)
-			window.showInformationMessage(line);
+			outputView.appendLine(line);
+			if(sender !== Session.name) {
+				window.showInformationMessage(line);
+			}
 		}
 	});
 
@@ -190,6 +192,10 @@ function activate(context) {
 				msg,
 			}
 			pub.publish(ChannelToUser(user), JSON.stringify(body));
+
+			if(user !== Session.name) {
+				pub.publish(ChannelToUser(Session.name), JSON.stringify(body));
+			}
 		}
 	});
 
