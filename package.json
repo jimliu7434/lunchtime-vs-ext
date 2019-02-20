@@ -1,7 +1,7 @@
 {
-	"name": "lunchtime",
-	"displayName": "lunchtime",
-	"description": "a lunch-time alert",
+	"name": "teamtalker",
+	"displayName": "team-talker",
+	"description": "teamtalker",
 	"version": "0.0.1",
 	"engines": {
 		"vscode": "^1.31.0"
@@ -36,24 +36,7 @@
 				"command": "extension.list",
 				"title": "talker list"
 			}
-		],
-		"viewsContainers": {
-			"activitybar": [
-				{
-					"id": "talker-container",
-					"title": "Talker",
-					"icon": "resources/talker.svg"
-				}
-			]
-		},
-		"views": {
-			"talker-container": [
-				{
-					"id": "talker-view",
-					"name": "Talker"
-				}
-			]
-		}
+		]
 	},
 	"scripts": {
 		"postinstall": "node ./node_modules/vscode/bin/install",

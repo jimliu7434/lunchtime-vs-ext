@@ -6,18 +6,10 @@ const Redis = require('ioredis');
 const UUIDV4 = require('uuid/v4');
 const Moment = require('moment');
 
-// this method is called when your extension is activated
-// your extension is activated the very first time the command is executed
-
 /**
  * @param {vscode.ExtensionContext} context
  */
 function activate(context) {
-
-	// Use the console to output diagnostic information (console.log) and errors (console.error)
-	// This line of code will only be executed once when your extension is activated
-	console.log('Congratulations, your extension "lunchtime" is now active!');
-
 	const userRedis = new Redis({
 		host: '10.1.4.226',
 		port: 6379,
@@ -215,7 +207,6 @@ function activate(context) {
 }
 exports.activate = activate;
 
-// this method is called when your extension is deactivated
 function deactivate() { }
 
 module.exports = {
