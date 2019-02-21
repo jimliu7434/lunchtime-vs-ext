@@ -27,6 +27,7 @@ This is the README for extension "teamtalker".
 2. ***join***
 
     Join conversations as an Anonymous.
+
     Session timeout is **1 hour**. If timeout, you have to re-join.
 
     ** You have to do **connect** first.
@@ -36,8 +37,11 @@ This is the README for extension "teamtalker".
 3. ***login***
 
     Join conversations by login.
+
     If you are using a known user id => login
+
     If you input a user id not existed => create & login
+
     Session timeout is **1 hour**. If timeout, you have to re-login.
 
     ** You have to do **connect** first.
@@ -70,7 +74,6 @@ This is the README for extension "teamtalker".
 
 ## Known Issues
 
-Calling out known issues can help limit users opening duplicate issues against your extension.
-
+Glad to catch your issue.
 
 **Enjoy!**
